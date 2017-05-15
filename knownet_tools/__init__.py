@@ -1,3 +1,4 @@
+import os
 from ._version import version_info, __version__
 
 from .example import *

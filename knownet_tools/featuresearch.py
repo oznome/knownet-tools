@@ -1,13 +1,12 @@
 import sys, os, time, requests
-
 import json
 import geojson
-
 import ipyleaflet as ll
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout, HBox, VBox, HTML
 from IPython.display import clear_output, Javascript
 import IPython.display as idisplay
+from IPython.core.interactiveshell import InteractiveShell
 
 class KnowMapWidget:
 
@@ -69,13 +68,59 @@ class KnowMapWidget:
         self.search_knowledge(self.last_search)
 
     def post_provenance(self, pid):
+        shell = InteractiveShell.instance()
         headers = { 'X-Auth-Token': 'I8Ob79Hri10fjAEviC5CEaaboCFcnzbxtIvN2mFcvNH',
                     'X-User-Id' : 'LduPNdS7xzthBtGPr' }
         print(pid)
-        r = requests.post("http://kn.csiro.au/api/playlist/i4ZYvz6ujyBrCLxQe",
+        r = requests.post("http://kn.csiro.au/api/playlist/4siRHNmrB7rKkMzx6",
                           json={"items": [pid]},
                           headers=headers)
+
+        from time import gmtime, strftime
+        current_time = strftime("%Y-%m-%dT%H:%M:%S+00:00", gmtime())
+
+        try:
+            git_url =  shell.user_ns['PROVENANCE_GIT_URL']
+        except:
+            git_url = 'Unknown Repository'
+
+        try:
+            notebook_name =  shell.user_ns['NOTEBOOK_NAME']
+        except:
+            notebook_name = 'Unknown Notebook'
+
+        print("Creating JSON")
+        provenance_json = {
+            "activity": {
+                "startedAtTime": current_time,
+                "comment": "Ran a workflow with playlist resource using " + notebook_name + " from " + git_url,
+                "type": "provenance",
+                "@graph": [
+                    {
+                        "@id": "http://example.com/id/prov/123",
+                        "@type": "prov:Activity",
+                        "startedAtTime": current_time,
+                        "endedAtTime": current_time
+                    },
+                    {
+                        "@id": notebook_name,
+                        "@type": "prov:Entity",
+                        "generation": { "activity": "http://example.com/id/prov/123" }
+                    }
+                ]
+            }
+        }
+        print("Created JSON")
+
+        r = requests.post("http://kn.csiro.au/api/playlist/4siRHNmrB7rKkMzx6",
+                          json=provenance_json, headers = headers)
+
         print(r.status_code)
+
+    def test_method(self):
+        from IPython.core.interactiveshell import InteractiveShell
+        shell = InteractiveShell.instance()
+        print(shell.all_ns_refs)
 
     @property
     def result_data(self):
@@ -149,6 +194,7 @@ class KnowMapWidget:
             self.layer_widget.close()
         if self.length < 0:
             self.length = 0
+        self.show_layer(1)
         self.layer_widget = interactive(self.show_layer, index=widgets.IntSlider(description='Results (' + str(self.length + 1) + ')', min=1, max=self.length + 1, step=1, value=1))
         self.hbox.children = (self.search_widget, self.layer_widget, self.previous_button_widget, self.next_button_widget)
 

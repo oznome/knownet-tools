@@ -1,7 +1,6 @@
 var widgets = require('jupyter-js-widgets');
 var _ = require('underscore');
 
-
 // Custom Model. Custom widgets models must at least provide default values
 // for model attributes, including
 //
@@ -47,3 +46,4 @@ module.exports = {
     HelloModel : HelloModel,
     HelloView : HelloView
 };
+
